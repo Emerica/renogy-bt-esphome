@@ -106,26 +106,15 @@ vector<uint8_t> GetLoadControlRequest(bool turn_on) {
     // Set the value based on turn_on
     if (turn_on) {
         dataBytes[5] = 0x01;  // Value 0x0001 to turn on
+        // Add hardcoded CRC for turn on command
+        dataBytes.push_back(0xF4);  // CRC LSB
+        dataBytes.push_back(0x69);  // CRC MSB
     } else {
         dataBytes[5] = 0x00;  // Value 0x0000 to turn off
+        // Add hardcoded CRC for turn off command
+        dataBytes.push_back(0x34);  // CRC LSB
+        dataBytes.push_back(0xA8);  // CRC MSB
     }
-    
-    // Calculate CRC16
-    uint16_t crc = 0xFFFF;
-    for (size_t i = 0; i < dataBytes.size(); i++) {
-        crc ^= dataBytes[i];
-        for (int j = 0; j < 8; j++) {
-            if (crc & 0x0001) {
-                crc = (crc >> 1) ^ 0xA001;
-            } else {
-                crc = crc >> 1;
-            }
-        }
-    }
-    
-    // Add CRC bytes (LSB first)
-    dataBytes.push_back(crc & 0xFF);
-    dataBytes.push_back((crc >> 8) & 0xFF);
 
     // Add a delay after sending the command
     delay(100);
