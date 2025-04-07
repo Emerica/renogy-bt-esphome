@@ -97,3 +97,42 @@ void HandleRoverData(const vector<uint8_t>& data) {
   parse_charging_info(data);
   
 }
+
+vector<uint8_t> GetLoadControlRequest(bool turn_on) {
+    // MODBUS write single register command
+    // Device ID (255), Function Code (6), Register Address (0x010A), Value (0x0001 for on, 0x0000 for off)
+    vector<uint8_t> dataBytes = {0xFF, 0x06, 0x01, 0x0A, 0x00, 0x00};  // Register address 0x010A
+    
+    // Set the value based on turn_on
+    if (turn_on) {
+        dataBytes[5] = 0x01;  // Value 0x0001 to turn on
+    } else {
+        dataBytes[5] = 0x00;  // Value 0x0000 to turn off
+    }
+    
+    // Calculate CRC16
+    uint16_t crc = 0xFFFF;
+    for (size_t i = 0; i < dataBytes.size(); i++) {
+        crc ^= dataBytes[i];
+        for (int j = 0; j < 8; j++) {
+            if (crc & 0x0001) {
+                crc = (crc >> 1) ^ 0xA001;
+            } else {
+                crc = crc >> 1;
+            }
+        }
+    }
+    
+    // Add CRC bytes (LSB first)
+    dataBytes.push_back(crc & 0xFF);
+    dataBytes.push_back((crc >> 8) & 0xFF);
+
+    // Add a delay after sending the command
+    delay(100);
+
+    for (size_t i = 0; i < dataBytes.size(); ++i) {
+        ESP_LOGD("GetLoadControlRequest", "Request Byte %d: 0x%02X", i, dataBytes[i]);
+    }
+
+    return dataBytes;
+}
